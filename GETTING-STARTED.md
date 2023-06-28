@@ -1,5 +1,7 @@
 # Getting Started
 
+PLEASE REPLACE `%%your ~~%%` ACCORDINGLY (also remove this statement)
+
 ## Guide For Development
 
 - Compile
@@ -9,46 +11,6 @@
 - Library: reusable codes for 3rd party
 - Deploy: deploy contracts on-chain
 - Publish: publish library and deployments
-
-## Quickstart
-
-### Prerequisites
-
-```bash
-npm install
-
-# install foundry (https://getfoundry.sh/)
-curl -L https://foundry.paradigm.xyz | bash
-```
-
-### Run
-
-To Build & Test,
-
-```bash
-npx hardhat compile
-
-npx hardhat test
-forge test
-
-npx hardhat coverage
-forge coverage
-
-# run scripts
-forge script script/Counter.s.sol
-forge script script/Counter.s.sol --rpc-url baobab
-```
-
-To deploy on local network, run `anvil` (or `npx hardhat node`) from another window and then continue.
-
-```bash
-# WARNING: this PRIVATE_KEY is well known! do not use for production!
-export PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-
-npx hardhat deploy --network localhost --reset
-npx hardhat call Counter number --network localhost # available via hardhat-utils plugin
-npx hardhat run script/counter_inc.ts --network localhost
-```
 
 ### Compile
 
@@ -117,10 +79,10 @@ It runs scripts in [deploy/](deploy/) directory and saves the result on `deploym
 
 Try running the command again. It will reuse the contracts if previous deployments are found.
 
-By default, this runs all scripts in [deploy/](deploy/). To run specific ones, we need to specify "tags" in the deploy script. For example, in case of [deploy/deploy_counter.ts](deploy/deploy_counter.ts):
+By default, this runs all scripts in [deploy/](deploy/). To run specific ones, we need to specify "tags" in the deploy script. For example, in case of %%your script%%:
 
 ```
-func.tags = ["Counter"];
+func.tags = ["%%your contract%%"];
 ```
 
 Then run:
@@ -174,32 +136,20 @@ See operation guide for deployment on Baobab.
 ### Library
 
 Functions that can be reused in tests/scripts need to be in the library.
-For example, we can create a function that calls multiple `counter.setNumber(x)` in [lib/hardhat/index.ts](lib/hardhat/index.ts):
+For example, %%your description%%.
 
 ```typescript
-async function setNumbers(counter: ethers.Contract, numList?: BigInt[]) {
-  if (numList === undefined) {
-    return;
-  }
-  for (const num of numList) {
-    console.log("========================");
-    console.log(`#${num}`);
-    console.log("Setting number:", num);
-    let tx = await counter.setNumber(num);
-    await tx.wait();
-    console.log("number set:", await counter.number());
-  }
-}
+%%your script%%
 ```
 
 Then, we can use it from tests/scripts:
 
 ```typescript
-import { setNumbers } from "../lib";
+import { %%your function%% } from "../lib";
 ...
 ```
 
-### Deploy
+### Deployment
 
 You need to create a network label for each deployment purpose.
 For example, if we need one for QA on Baobab, append to networks in `hardhat.config.ts`:
@@ -229,25 +179,25 @@ To deploy:
 
 ```bash
 export PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-npx hardhat deploy --network baobab-qa --tags Counter
+npx hardhat deploy --network baobab-qa --tags %%your contract%%
 ```
 
 To send transactions:
 
 ```bash
-export COUNTER=$(cat deployments/baobab-qa/Counter.json | jq -r .address)
-forge script script/Counter.s.sol --rpc-url baobab-qa --private-key $PRIVATE_KEY --broadcast
+export CONTRACT=$(cat deployments/baobab-qa/%%your contract%%.json | jq -r .address)
+forge script %%your script%% --rpc-url baobab-qa --private-key $PRIVATE_KEY --broadcast
 # or
-npx hardhat run script/counter_inc.ts --network baobab-qa
+npx hardhat run %%your script%% --network baobab-qa
 ```
 
-#### Verification
+### Verification
 
 Upload the following file to [scope](https://scope.klaytn.com/) or [finder](https://www.klaytnfinder.io/):
 
 ```bash
-npx hardhat smart-flatten contracts/Counter.sol
-cat artifacts/Counter.flat.sol | pbcopy
+npx hardhat smart-flatten %%your contract%%
+cat artifacts/%%your flattened contract%% | pbcopy
 ```
 
 ### Publish
@@ -268,11 +218,11 @@ npm publish
 After publishing, users can use the library functions as follows:
 
 ```typescript
-import { setNumbers } from "@klaytn/contract-template";
+import { %%your function%% } from "@klaytn/contract-template";
 ...
 ```
 
-See [script/counter_setnums.ts](script/counter_setnums.ts) for details.
+See %%your script%% for details.
 
 ## Configuration
 
@@ -281,12 +231,12 @@ This template ships default configurations. However, if you need to change it, h
 Here are the list of configurable files:
 
 - `package.json`: package info
-  - necessary information must be updated by running `npm init` (as in [this section](#must-do-after-repo-creation))
+  - necessary information must be set by running `npm init`
   - others (files, scripts, etc.) can be updated manually
 - `hardhat.config.ts` (please sync `foundry.toml` as well)
   - `defaultKey`: default key to be used if `env.PRIVATE_KEY` is empty. Default is the [well known key](https://hardhat.org/hardhat-network/docs/reference#accounts)
   - `network`: list of networks. Can be selected with `npx hardhat --network` flag. These can contain tags depending on the deployment purpose, such as `baobab-qa`
-  - `namedAccounts`: accounts for `getNamedAccounts()` (see [deploy/deploy_lock.ts](deploy/deploy_lock.ts))
+  - `namedAccounts`: accounts for `getNamedAccounts()`
   - `etherscan`: required for etherscan-verify
   - `dodoc`: required for hardhat-utils
   - `paths`: required for hardhat-deploy
