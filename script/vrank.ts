@@ -9,8 +9,8 @@ let blockRecords: BlockRecord[] = [];
 
 type BlockRecord = {
   blockNum: number;
-  voters: string[];
-  nonvoters: string[];
+  voters: number[];
+  nonvoters: number[];
 };
 
 async function getCouncil(blockNum: number): Promise<string[]> {
@@ -19,11 +19,11 @@ async function getCouncil(blockNum: number): Promise<string[]> {
   return nonChecksum.map(ethers.utils.getAddress);
 }
 
-function nonVoteCnt(slot: number, addr: string) {
+function nonVoteCnt(slot: number, valIdx: number) {
   let ret = 0;
   for (let i = 0; i <= slot; i++) {
     const record = blockRecords[i];
-    if (record.nonvoters.includes(addr)) {
+    if (record.nonvoters.includes(valIdx)) {
       ret++;
     }
   }
@@ -51,35 +51,35 @@ function findLongestContSubseqLen(arr: number[]): number {
   return maxLength;
 }
 
-function voted(slot: number, addr: string) {
+function voted(slot: number, valIdx: number) {
   const record = blockRecords[slot];
-  if (record.voters.includes(addr)) {
+  if (record.voters.includes(valIdx)) {
     return true;
   }
   return false;
 }
 
-function maxNonVoteCntCons(slot: number, addr: string) {
+function maxNonVoteCntCons(slot: number, valIdx: number) {
   const nonvotedList = [];
   for (let i = 0; i <= slot; i++) {
     const record = blockRecords[i];
-    if (!voted(slot, addr)) {
+    if (!voted(slot, valIdx)) {
       nonvotedList.push(record.blockNum);
     }
   }
   return findLongestContSubseqLen(nonvotedList);
 }
 
-function voteAdd(slot: number, addr: string) {
+function voteAdd(slot: number, valIdx: number) {
   return (50 * slot) / period;
 }
 
-function voteDeduct(slot: number, addr: string) {
-  return nonVoteCnt(slot, addr) * alpha + Math.floor(maxNonVoteCntCons(slot, addr) * 2 * alpha);
+function voteDeduct(slot: number, valIdx: number) {
+  return nonVoteCnt(slot, valIdx) * alpha + Math.floor(maxNonVoteCntCons(slot, valIdx) * 2 * alpha);
 }
 
-function voterScore(slot: number, addr: string) {
-  return 50 + voteAdd(slot, addr) - voteDeduct(slot, addr);
+function voterScore(slot: number, valIdx: number) {
+  return 50 + voteAdd(slot, valIdx) - voteDeduct(slot, valIdx);
 }
 
 async function getRecord(blockNum: number): Promise<BlockRecord> {
@@ -87,11 +87,12 @@ async function getRecord(blockNum: number): Promise<BlockRecord> {
   const extraData = parseExtraData(header.extraData);
   const record: BlockRecord = { blockNum, voters: [], nonvoters: [] };
   for (let i = 0; i < extraData.committedSeal.length; i++) {
-    record.voters.push(commiterAddress(header, i));
+    const addr = commiterAddress(header, i);
+    record.voters.push(council.indexOf(addr));
   }
   for (let i = 0; i < council.length; i++) {
-    if (!record.voters.includes(council[i])) {
-      record.nonvoters.push(council[i]);
+    if (!record.voters.includes(i)) {
+      record.nonvoters.push(i);
     }
   }
   return record;
@@ -109,25 +110,48 @@ async function fillRecords(startBlock: number, endBlock: number) {
   }
 }
 
+function output1(fn: string) {
+  let row = "slot";
+  for (const addr of council) {
+    row += `,${addr} score`;
+  }
+  row += "\n";
+  fs.writeFileSync(fn, row);
+
+  for (let i = 0; i <= period; i++) {
+    row = "${i}";
+    for (let valIdx = 0; valIdx < council.length; valIdx++) {
+      row += `,${voterScore(i, valIdx)}`;
+    }
+    row += "\n";
+    fs.appendFileSync(fn, row);
+  }
+}
+
+function output2(fn: string) {
+  fs.writeFileSync(fn, `slot, addr, voted, score\n`);
+  for (let i = 0; i <= period; i++) {
+    for (let valIdx = 0; valIdx < council.length; valIdx++) {
+      fs.appendFileSync(fn, `${i}, ${council[valIdx]}, ${voted(i, valIdx)}, ${voterScore(i, valIdx)}\n`);
+    }
+  }
+}
+
 async function main() {
   const blockNum = 126007200;
   council = await getCouncil(blockNum);
-  await fillRecords(blockNum, blockNum + period);
-
-  const fn = `output_${blockNum}.csv`;
-  fs.writeFileSync(fn, `addr`);
-  for (let i = 0; i <= period; i++) {
-    fs.appendFileSync(fn, `, ${blockNum + i}`);
+  const blockCache = `output_blocks_${blockNum}.json`;
+  if (fs.existsSync(blockCache)) {
+    blockRecords = JSON.parse(fs.readFileSync(blockCache).toString());
+  } else {
+    await fillRecords(blockNum, blockNum + period);
+    fs.writeFileSync(blockCache, JSON.stringify(blockRecords));
   }
-  fs.appendFileSync(fn, `\n`);
-
-  for (const addr of council) {
-    fs.appendFileSync(fn, `${addr}`);
-    for (let i = 0; i <= period; i++) {
-      fs.appendFileSync(fn, `,${voterScore(i, addr)}`);
-    }
-    fs.appendFileSync(fn, `\n`);
-  }
+  console.log("fillRecords finished");
+  output1(`output_${blockNum}_1.csv`);
+  console.log("log1 finished");
+  output2(`output_${blockNum}_2.csv`);
+  console.log("log2 finished");
 }
 
 // We recommend this pattern to be able to use async/await everywhere
