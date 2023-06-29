@@ -19,6 +19,17 @@ async function getCouncil(blockNum: number): Promise<string[]> {
   return nonChecksum.map(ethers.utils.getAddress);
 }
 
+function voteCnt(slot: number, valIdx: number) {
+  let ret = 0;
+  for (let i = 0; i <= slot; i++) {
+    const record = blockRecords[i];
+    if (record.voters.includes(valIdx)) {
+      ret++;
+    }
+  }
+  return ret;
+}
+
 function nonVoteCnt(slot: number, valIdx: number) {
   let ret = 0;
   for (let i = 0; i <= slot; i++) {
@@ -107,10 +118,17 @@ async function fillRecords(startBlock: number, endBlock: number) {
   for (let block = startBlock; block <= endBlock; block++) {
     const record = await getRecord(block);
     blockRecords.push(record);
+    if (block % 100 == 0) {
+      console.log(`Downloading ${block}`);
+    }
   }
 }
 
+// column: slot, v1 score, v2 score, v3 score, ...
 function output1(fn: string) {
+  if (fs.existsSync(fn)) {
+    throw new Error(`${fn} already exists`);
+  }
   let row = "slot";
   for (const addr of council) {
     row += `,${addr} score`;
@@ -128,7 +146,11 @@ function output1(fn: string) {
   }
 }
 
+// column: slot, addr, voted, score
 function output2(fn: string) {
+  if (fs.existsSync(fn)) {
+    throw new Error(`${fn} already exists`);
+  }
   fs.writeFileSync(fn, `slot, addr, voted, score\n`);
   for (let i = 0; i <= period; i++) {
     for (let valIdx = 0; valIdx < council.length; valIdx++) {
@@ -137,21 +159,35 @@ function output2(fn: string) {
   }
 }
 
+// column: addr, total votes, total nonvotes
+function output3(fn: string) {
+  if (fs.existsSync(fn)) {
+    throw new Error(`${fn} already exists`);
+  }
+  fs.writeFileSync(fn, `addr, total votes, total nonvotes, final score\n`);
+  for (let valIdx = 0; valIdx < council.length; valIdx++) {
+    fs.appendFileSync(
+      fn,
+      `${council[valIdx]}, ${voteCnt(period, valIdx)}, ${nonVoteCnt(period, valIdx)}, ${voterScore(period, valIdx)}\n`,
+    );
+  }
+}
+
 async function main() {
   const blockNum = 126007200;
   council = await getCouncil(blockNum);
-  const blockCache = `output_blocks_${blockNum}.json`;
-  if (fs.existsSync(blockCache)) {
-    blockRecords = JSON.parse(fs.readFileSync(blockCache).toString());
-  } else {
-    await fillRecords(blockNum, blockNum + period);
-    fs.writeFileSync(blockCache, JSON.stringify(blockRecords));
+  const blockCacheFileName = `blocks_${hre.network.name}_${blockNum}.json`;
+  if (!fs.existsSync(blockCacheFileName)) {
+    throw new Error(`no block file named ${blockCacheFileName}`);
   }
-  console.log("fillRecords finished");
-  output1(`output_${blockNum}_1.csv`);
-  console.log("log1 finished");
-  output2(`output_${blockNum}_2.csv`);
-  console.log("log2 finished");
+  blockRecords = JSON.parse(fs.readFileSync(blockCacheFileName).toString());
+
+  // output1(`output_${blockNum}_1.csv`);
+  // console.log("log1 finished");
+  // output2(`output_${hre.network.name}_${blockNum}_2.csv`);
+  // console.log("log2 finished");
+  output3(`output_${hre.network.name}_${blockNum}_3.csv`);
+  console.log("log3 finished");
 }
 
 // We recommend this pattern to be able to use async/await everywhere
