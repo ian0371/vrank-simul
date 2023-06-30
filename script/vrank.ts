@@ -74,7 +74,7 @@ function maxNonVoteCntCons(slot: number, valIdx: number) {
   const nonvotedList = [];
   for (let i = 0; i <= slot; i++) {
     const record = blockRecords[i];
-    if (!voted(slot, valIdx)) {
+    if (!voted(i, valIdx)) {
       nonvotedList.push(record.blockNum);
     }
   }
@@ -164,11 +164,14 @@ function output3(fn: string) {
   if (fs.existsSync(fn)) {
     throw new Error(`${fn} already exists`);
   }
-  fs.writeFileSync(fn, `addr, total votes, total nonvotes, final score\n`);
+  fs.writeFileSync(fn, `addr, total votes, total nonvotes, max nonvote cnts, final score\n`);
   for (let valIdx = 0; valIdx < council.length; valIdx++) {
     fs.appendFileSync(
       fn,
-      `${council[valIdx]}, ${voteCnt(period, valIdx)}, ${nonVoteCnt(period, valIdx)}, ${voterScore(period, valIdx)}\n`,
+      `${council[valIdx]}, ${voteCnt(period, valIdx)}, ${nonVoteCnt(period, valIdx)}, ${maxNonVoteCntCons(
+        period,
+        valIdx,
+      )}, ${voterScore(period, valIdx)}\n`,
     );
   }
 }
