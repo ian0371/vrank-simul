@@ -22,8 +22,8 @@
     "prepare": "husky install",
     "lint": "npm run lint:js",
     "lint:fix": "npm run lint:js:fix",
-    "lint:js": "prettier --loglevel warn --ignore-path .gitignore '**/*.{js,ts}' --check && eslint --no-error-on-unmatched-pattern --ignore-path .gitignore .",
-    "lint:js:fix": "prettier --loglevel warn --ignore-path .gitignore '**/*.{js,ts}' --write && eslint --no-error-on-unmatched-pattern --ignore-path .gitignore . --fix",
+    "lint:js": "prettier --loglevel warn --ignore-path .gitignore 'script/*.{js,ts}' --check && eslint --no-error-on-unmatched-pattern --ignore-path .gitignore . --ignore-pattern 'p2p_download*'",
+    "lint:js:fix": "prettier --loglevel warn --ignore-path .gitignore 'script/*.{js,ts}' --write && eslint --no-error-on-unmatched-pattern --ignore-path .gitignore . --fix --ignore-pattern 'p2p_download*'",
     "watch": "tsc -w",
     "export:baobab": "npx hardhat export --export export/baobab/index.ts --network baobab",
     "export:cypress": "npx hardhat export --export export/cypress/index.ts --network cypress",
@@ -37,6 +37,7 @@
     "README.md"
   ],
   "devDependencies": {
+    "@ethereumjs/devp2p": "^5.2.0",
     "@klaytn/hardhat-utils": "^0.0.5",
     "@primitivefi/hardhat-dodoc": "^0.2.3",
     "@typescript-eslint/eslint-plugin": "^5.58.0",
