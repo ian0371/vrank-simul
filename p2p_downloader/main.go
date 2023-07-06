@@ -3,76 +3,56 @@ package main
 import (
 	"fmt"
 	"os"
-	"reflect"
-	"unsafe"
+	"time"
 
-	"github.com/klaytn/klaytn/accounts"
 	"github.com/klaytn/klaytn/cmd/utils"
 	"github.com/klaytn/klaytn/cmd/utils/nodecmd"
-	"github.com/klaytn/klaytn/event"
-	"github.com/klaytn/klaytn/node"
-	"github.com/klaytn/klaytn/node/cn"
-	"github.com/klaytn/klaytn/params"
+	"github.com/klaytn/klaytn/networks/p2p"
+	"github.com/klaytn/klaytn/networks/p2p/discover"
 	"gopkg.in/urfave/cli.v1"
 )
 
-func GetUnexportedField(field reflect.Value) interface{} {
-	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
-}
+func setUp(ctx *cli.Context) {
+	if len(ctx.GlobalString(utils.NodeKeyHexFlag.Name)) != 64 {
+		ctx.Set(utils.NodeKeyHexFlag.Name, "000000000000000000000000000000000000000000000000000000000000dead")
+		fmt.Println("Setting nodekeyhex to default")
+	}
+	_, klayConfig := utils.MakeConfigNode(ctx)
 
-func setUp(ctx *cli.Context) error {
-	n, klayConfig := utils.MakeConfigNode(ctx)
-	nodeConf := GetUnexportedField(reflect.ValueOf(n).Elem().FieldByName("config")).(*node.Config)
-	eventmux := GetUnexportedField(reflect.ValueOf(n).Elem().FieldByName("eventmux")).(*event.TypeMux)
-	accman := GetUnexportedField(reflect.ValueOf(n).Elem().FieldByName("accman")).(*accounts.Manager)
-	servicectx := node.NewServiceContext(nodeConf, make(map[reflect.Type]node.Service), eventmux, accman)
-	cn, _ := cn.New(servicectx, &klayConfig.CN)
+	server := p2p.NewServer(klayConfig.Node.P2P)
+	node, _ := discover.ParseNode("kni://8318535b54105d4a7aae60c08fc45f9687181b4fdfc625bd1a753fa7397fed753547f11ca8696646f2f3acb08e31016afac23e630c5d11f59f61fef57b0d2aa5@3.38.95.49:32324?discport=0\u0026ntype=cn")
+	server.AddProtocols([]p2p.Protocol{})
+	err := server.Start()
+	if err != nil {
+		panic(err)
+	}
 
-	fmt.Println(GetUnexportedField(reflect.ValueOf(cn).Elem().FieldByName("chainConfig")).(*params.ChainConfig))
-	return nil
+	server.AddPeer(node)
+	time.Sleep(1 * time.Second)
+
+	fmt.Println(server.Peers())
+
+	// server.SubscribeEvents(ch)
+	// fmt.Println(server)
+	// fmt.Println(server.GetProtocols())
+
+	/*
+		peer = cn.Peer
+		peer.Handshake(pm.networkId, pm.getChainID(), td, hash, genesis.Hash())
+		peer.RequestHeadersByHash()
+		peer.FetchBlockHeader()
+		peer.GetRW().ReadMsg()
+		p2p.Send()
+	*/
 }
 
 func main() {
 	app := utils.NewApp(nodecmd.GetGitCommit(), "The command line interface for Klaytn Consensus Node")
 	app.Action = setUp
-	app.Flags = nodecmd.KcnAppFlags()
+	app.Flags = nodecmd.KenAppFlags()
 
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-
-	/*
-
-		mdb := database.NewMemoryDBManager()
-
-
-		config := utils.KlayConfig{
-			CN:               *cn.GetDefaultConfig(),
-			Node:             utils.DefaultNodeConfig(),
-			DB:               *dbsyncer.DefaultDBConfig(),
-			ChainDataFetcher: *chaindatafetcher.DefaultChainDataFetcherConfig(),
-			ServiceChain:     *sc.DefaultServiceChainConfig(),
-		}
-		cacheConfig := DefaultCacheConfig(config.CN)
-		vmConfig := DefaultVMConfig(config.CN)
-		chainConfig := params.CypressChainConfig
-		cn.CreateConsensusEngine(ctx, config, chainConfig, chainDB, governance, ctx.NodeType())
-
-		bc = blockchain.NewBlockChain(mdb, cacheConfig, parmas.CypressChainConfig, engine, vmConfig)
-
-		bc.NewBlockChain(mdb, cacheConfig, chainConfig, cn.engine, vmConfig)
-		// cn.txPool = blockchain.NewTxPool(config.TxPool, cn.chainConfig, bc)
-
-		cn.NewProtocolManager(params.CypressChainConfig, downloader.FullSync, params.CypressNetworkId,
-			nil, nil, nil,
-			nil, nil, 1,
-			-1, &cn.Config{},
-		)
-	*/
-
-	// config *params.ChainConfig, mode downloader.SyncMode, networkId uint64,
-	// mux *event.TypeMux, txpool work.TxPool, engine consensus.Engine,
-	// blockchain work.BlockChain, chainDB database.DBManager, cacheLimit int,
-	//	nodetype common.ConnType, cnconfig *Config,
 }
