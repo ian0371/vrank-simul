@@ -20,19 +20,35 @@ func setUp(ctx *cli.Context) {
 	_, klayConfig := utils.MakeConfigNode(ctx)
 
 	server := p2p.NewServer(klayConfig.Node.P2P)
-	node, _ := discover.ParseNode("kni://8318535b54105d4a7aae60c08fc45f9687181b4fdfc625bd1a753fa7397fed753547f11ca8696646f2f3acb08e31016afac23e630c5d11f59f61fef57b0d2aa5@3.38.95.49:32324?discport=0\u0026ntype=cn")
-	server.AddProtocols([]p2p.Protocol{})
+	node, _ := discover.ParseNode("kni://8318535b54105d4a7aae60c08fc45f9687181b4fdfc625bd1a753fa7397fed753547f11ca8696646f2f3acb08e31016afac23e630c5d11f59f61fef57b0d2aa5@3.38.95.49:32324?discport=0&ntype=cn")
+
+	ch := make(chan *p2p.PeerEvent)
+	server.SubscribeEvents(ch)
+	go func() {
+		for {
+			select {
+			case v := <-ch:
+				fmt.Println("message received!!!", v)
+			default:
+				time.Sleep(2 * time.Second)
+			}
+		}
+	}()
+	// server.AddProtocols([]p2p.Protocol{})
+
 	err := server.Start()
 	if err != nil {
 		panic(err)
 	}
 
 	server.AddPeer(node)
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
+	fmt.Println(server.PeersInfo())
 	fmt.Println(server.Peers())
 
-	// server.SubscribeEvents(ch)
+	time.Sleep(10 * time.Second)
+
 	// fmt.Println(server)
 	// fmt.Println(server.GetProtocols())
 
