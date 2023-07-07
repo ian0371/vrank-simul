@@ -179,7 +179,13 @@ function output3(fn: string) {
 async function main() {
   const blockNum = 126007200;
   council = await getCouncil(blockNum);
-  const blockCacheFileName = `blocks_${hre.network.name}_${blockNum}.json`;
+
+  const outputDir = "downloads";
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir);
+  }
+
+  const blockCacheFileName = `${outputDir}/blocks_${hre.network.name}_${blockNum}.json`;
   if (!fs.existsSync(blockCacheFileName)) {
     throw new Error(`no block file named ${blockCacheFileName}`);
   }
