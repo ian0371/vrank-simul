@@ -195,7 +195,7 @@ async function main() {
   // console.log("log1 finished");
   // output2(`output_${hre.network.name}_${blockNum}_2.csv`);
   // console.log("log2 finished");
-  output3(`output_${hre.network.name}_${blockNum}_3.csv`);
+  output3(`${outputDir}/output_${hre.network.name}_${blockNum}_3.csv`);
   console.log("log3 finished");
 }
 

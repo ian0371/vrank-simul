@@ -87,6 +87,12 @@ const config: HardhatUserConfig = {
       live: false,
       saveDeployments: true,
     },
+    everstake: {
+      url: "http://3.34.50.150:8551",
+      accounts: [process.env.PRIVATE_KEY || defaultKey],
+      live: false,
+      saveDeployments: true,
+    },
     localhost: {
       url: "http://127.0.0.1:8545",
       accounts: [process.env.PRIVATE_KEY || defaultKey],
